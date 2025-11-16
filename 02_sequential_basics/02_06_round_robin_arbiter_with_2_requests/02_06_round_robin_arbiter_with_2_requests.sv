@@ -23,5 +23,19 @@ module round_robin_arbiter_with_2_requests
     // requests -> 01 00 10 11 11 00 11 00 11 11
     // grants   -> 01 00 10 01 10 00 01 00 10 01
 
+    logic next;
+
+    always_ff @ (posedge clk)
+        if (rst)
+            // It is assumed that the requester 0 is initially first in the queue
+            next <= 1'b0;
+        // If have request from next requester, then we should change next state
+        else if (requests[next])
+            next <= (~ next);
+
+    assign grants = {
+        requests[1] & (  next | ~ requests[0]),
+        requests[0] & (~ next | ~ requests[1])
+    };
 
 endmodule

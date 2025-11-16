@@ -29,5 +29,39 @@ module parallel_to_serial
     // Note:
     // Check the waveform diagram in the README for better understanding.
 
+    logic [        width - 1:0] saved_parallel_data;
+    logic [$clog2(width) - 1:0] processed_count;
+    logic                       processing;
+
+    // Busy output - high when processing data
+    assign busy = processing;
+
+    // Output data
+    always_comb
+        if (parallel_valid) begin
+            saved_parallel_data = parallel_data;
+            serial_valid = 1'b1;
+            serial_data  = saved_parallel_data[0];
+        end else if (processing) begin
+            serial_valid = 1'b1;
+            serial_data  = saved_parallel_data[processed_count];
+        end else
+            serial_valid = 1'b0;
+
+    // State management
+    always_ff @ (posedge clk)
+        if (rst) begin
+            processed_count <= '0;
+            processing      <= 1'b0;
+        end else if (parallel_valid & (~ processing)) begin
+            processed_count <= 1;
+            processing      <= 1'b1;
+        end else if (processing) begin
+            if (processed_count == width - 1) begin
+                processed_count <= '0;
+                processing      <= 1'b0;
+            end else
+                processed_count <= processed_count + 1;
+        end
 
 endmodule
