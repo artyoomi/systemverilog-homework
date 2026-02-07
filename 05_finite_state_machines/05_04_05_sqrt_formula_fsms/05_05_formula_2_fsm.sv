@@ -34,5 +34,79 @@ module formula_2_fsm
     // FPGA-Systems Magazine :: FSM :: Issue ALFA (state_0)
     // You can download this issue from https://fpga-systems.ru/fsm
 
+    enum logic [1:0]
+    {
+        IDLE,
+        WAIT_C,
+        WAIT_B,
+        WAIT_A
+    }
+    state, next_state;
+
+    logic [31:0] sum;
+
+    always_comb
+    begin
+        next_state = state;
+
+        isqrt_x_vld = 1'b0;
+        res_vld     = 1'b0;
+
+        case (state)
+            IDLE:
+            begin
+                if (arg_vld)
+                begin
+                    isqrt_x_vld = 1'b1;
+                    isqrt_x     = c;
+
+                    next_state = WAIT_C;
+                end
+            end
+
+            WAIT_C:
+            begin
+                if (isqrt_y_vld)
+                begin
+                    sum = b + 32' (isqrt_y);
+
+                    isqrt_x_vld = 1'b1;
+                    isqrt_x     = sum;
+
+                    next_state = WAIT_B;
+                end
+            end
+
+            WAIT_B:
+            begin
+                if (isqrt_y_vld)
+                begin
+                    sum = a + 32' (isqrt_y);
+
+                    isqrt_x_vld = 1'b1;
+                    isqrt_x     = sum;
+
+                    next_state = WAIT_A;
+                end
+            end
+
+            WAIT_A:
+            begin
+                if (isqrt_y_vld)
+                begin
+                    res_vld = 1'b1;
+                    res     = 32' (isqrt_y);
+
+                    next_state = IDLE;
+                end
+            end
+        endcase
+    end
+
+    always_ff @ (posedge clk)
+        if (rst)
+            state <= IDLE;
+        else
+            state <= next_state;
 
 endmodule
