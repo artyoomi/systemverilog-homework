@@ -15,10 +15,9 @@ module ff_fifo_with_reg_empty_full
 
     //------------------------------------------------------------------------
 
-    localparam pointer_width = $clog2 (depth),
-               counter_width = $clog2 (depth + 1);
+    localparam pointer_width = $clog2 (depth);
 
-    localparam [counter_width - 1:0] max_ptr = counter_width' (depth - 1);
+    localparam [pointer_width - 1:0] max_ptr = pointer_width' (depth - 1);
 
     //------------------------------------------------------------------------
 
@@ -38,7 +37,10 @@ module ff_fifo_with_reg_empty_full
             wr_ptr_d = wr_ptr_q;
 
         // Task: Add logic for pop to make the FIFO work
-
+        if (pop)
+            rd_ptr_d = rd_ptr_q == max_ptr ? '0 : rd_ptr_q + 1'b1;
+        else
+            rd_ptr_d = rd_ptr_q;
 
         case ({ push, pop })
 
@@ -50,6 +52,11 @@ module ff_fifo_with_reg_empty_full
         end
 
         // Task: Add { push, pop } == 2'b01 case to make the FIFO work
+        2'b01:
+        begin
+            empty_d = rd_ptr_d == wr_ptr_q;
+            full_d  = 1'b0;
+        end
 
         default:
         begin

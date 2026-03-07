@@ -38,6 +38,11 @@ module ff_fifo_pow2_depth
             ext_wr_ptr <= ext_wr_ptr + 1'b1;
 
     // Task: Add logic for ext_rd_ptr
+    always_ff @ (posedge clk)
+        if (rst)
+            ext_rd_ptr <= '0;
+        else if (pop)
+            ext_rd_ptr <= ext_rd_ptr + 1'b1;
 
     //--------------------------------------------------------------------------
 
@@ -49,10 +54,15 @@ module ff_fifo_pow2_depth
 
     //--------------------------------------------------------------------------
 
+    // The most significant bit of the ext_rd_ptr and ext_wr_ptr used to
+    // distinguish between empty and full
+
     // Example
     assign full =   rd_ptr == wr_ptr
                   & ext_rd_ptr [pointer_width] != ext_wr_ptr [pointer_width];
 
     // Task: Add logic for empty output using full as an example
+    assign empty =   rd_ptr == wr_ptr
+                   & ext_rd_ptr [pointer_width] == ext_wr_ptr [pointer_width];
 
 endmodule
