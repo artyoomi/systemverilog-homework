@@ -78,5 +78,19 @@ module shift_register_with_valid
     // FPGA-Systems Magazine :: FSM :: Issue ALFA (state_0)
     // You can download this issue from https://fpga-systems.ru/fsm#state_0
 
+    logic              [0:depth - 1] shift_reg_vld;
+    logic [0:depth - 1][width - 1:0] shift_reg;
+
+    always_ff @ (posedge clk)
+        if (rst)
+            shift_reg_vld <= '0;
+        else
+        begin
+            shift_reg_vld <= { in_vld,  shift_reg_vld[0:depth - 2] };
+            shift_reg     <= { in_data,     shift_reg[0:depth - 2] };
+        end
+
+    assign out_vld  = shift_reg_vld[depth - 1];
+    assign out_data =     shift_reg[depth - 1];
 
 endmodule

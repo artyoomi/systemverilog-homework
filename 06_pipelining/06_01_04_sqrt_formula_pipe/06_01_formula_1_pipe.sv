@@ -41,6 +41,40 @@ module formula_1_pipe
     // in the article by Yuri Panchul published in
     // FPGA-Systems Magazine :: FSM :: Issue ALFA (state_0)
     // You can download this issue from https://fpga-systems.ru/fsm#state_0
+    wire              sum_vld;
+    logic [0:2][31:0] isqrts;
 
+    isqrt a_isqrt
+    (
+        .clk   ( clk       ),
+        .rst   ( rst       ),
+        .x_vld ( arg_vld   ),
+        .x     ( a         ),
+        .y_vld ( sum_vld   ),
+        .y     ( isqrts[0] )
+    );
+
+    // Ignore y_vld pin on b_isqrt and c_isqrt
+
+    isqrt b_isqrt
+    (
+        .clk   ( clk       ),
+        .rst   ( rst       ),
+        .x_vld ( arg_vld   ),
+        .x     ( b         ),
+        .y     ( isqrts[1] )
+    );
+
+    isqrt c_isqrt
+    (
+        .clk   ( clk       ),
+        .rst   ( rst       ),
+        .x_vld ( arg_vld   ),
+        .x     ( c         ),
+        .y     ( isqrts[2] )
+    );
+
+    assign res_vld = sum_vld;
+    assign res     = isqrts[0] + isqrts[1] + isqrts[2];
 
 endmodule

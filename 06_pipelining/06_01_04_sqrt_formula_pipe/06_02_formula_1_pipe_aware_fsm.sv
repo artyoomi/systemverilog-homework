@@ -24,42 +24,80 @@ module formula_1_pipe_aware_fsm
     input        [15:0] isqrt_y
 );
 
-    // Task:
-    //
-    // Implement a module formula_1_pipe_aware_fsm
-    // with a Finite State Machine (FSM)
-    // that drives the inputs and consumes the outputs
-    // of a single pipelined module isqrt.
-    //
-    // The formula_1_pipe_aware_fsm module is supposed to be instantiated
-    // inside the module formula_1_pipe_aware_fsm_top,
-    // together with a single instance of isqrt.
-    //
-    // The resulting structure has to compute the formula
-    // defined in the file formula_1_fn.svh.
-    //
-    // The formula_1_pipe_aware_fsm module
-    // should NOT create any instances of isqrt module,
-    // it should only use the input and output ports connecting
-    // to the instance of isqrt at higher level of the instance hierarchy.
-    //
-    // All the datapath computations except the square root calculation,
-    // should be implemented inside formula_1_pipe_aware_fsm module.
-    // So this module is not a state machine only, it is a combination
-    // of an FSM with a datapath for additions and the intermediate data
-    // registers.
-    //
-    // Note that the module formula_1_pipe_aware_fsm is NOT pipelined itself.
-    // It should be able to accept new arguments a, b and c
-    // arriving at every N+3 clock cycles.
-    //
-    // In order to achieve this latency the FSM is supposed to use the fact
-    // that isqrt is a pipelined module.
-    //
-    // For more details, see the discussion of this problem
-    // in the article by Yuri Panchul published in
-    // FPGA-Systems Magazine :: FSM :: Issue ALFA (state_0)
-    // You can download this issue from https://fpga-systems.ru/fsm#state_0
+    // This structure will work only if N >= 3
+    enum logic [2:0]
+    {
+        IDLE,
+        SEND_B,
+        SEND_C,
+        WAIT_A,
+        GET_B,
+        GET_C
+    }
+    state, next_state;
 
+    // State assignment logic
+    always_ff @ (posedge clk)
+        if (rst) state <= IDLE;
+        else     state <= next_state;
+
+    // State transition logic
+    always_comb begin
+        next_state = IDLE;
+
+        case (state)
+            IDLE: if (arg_vld) next_state = SEND_B;
+                  else         next_state = IDLE;
+
+            SEND_B: next_state = SEND_C;
+
+            SEND_C: next_state = WAIT_A;
+
+            WAIT_A: if (isqrt_y_vld) next_state = GET_B;
+                    else             next_state = WAIT_A;
+
+            GET_B:  next_state = GET_C;
+
+            GET_C:  next_state = IDLE;
+        endcase
+    end
+
+    // Logic to interfact with external isqrt module
+    always_comb begin
+        isqrt_x_vld = 1'b0;
+
+        case (state)
+            IDLE:   if (arg_vld) begin
+                        isqrt_x_vld = 1'b1;
+                        isqrt_x     = a;
+                    end
+
+            SEND_B:
+                    begin
+                        isqrt_x_vld = 1'b1;
+                        isqrt_x     = b;
+                    end
+
+            SEND_C:
+                    begin
+                        isqrt_x_vld = 1'b1;
+                        isqrt_x     = c;
+                    end
+        endcase
+    end
+
+    // Logic to control result
+    always_ff @ (posedge clk)
+    begin
+        res_vld <= 1'b0;
+        case (state)
+            WAIT_A: if (isqrt_y_vld) res <= isqrt_y;
+            GET_B:  res <= res + isqrt_y;
+            GET_C:  begin
+                        res <= res + isqrt_y;
+                        res_vld <= 1'b1;
+                    end
+        endcase
+    end
 
 endmodule
